@@ -16,6 +16,7 @@ import requests
 from config import (
     ADAPTIVE_LOGIN, ADAPTIVE_PASSWORD, ADAPTIVE_BASE_URL,
     DATE_START, DATE_END, EXCLUDE_VERSIONS, EXCLUDE_SHEETS,
+    ALWAYS_INCLUDE_VERSIONS, VERSION_LOOKBACK_YEARS,
 )
 
 log = logging.getLogger(__name__)
@@ -87,6 +88,8 @@ def discover_versions():
         vtype = _ga(attrs, "type")
         name  = _ga(attrs, "name")
         if vtype == "VERSION_FOLDER" or not name:
+            continue
+        if INCLUDE_VERSIONS is not None and name not in INCLUDE_VERSIONS:
             continue
         if name in EXCLUDE_VERSIONS:
             log.info(f"  Skipping excluded version: {name}")
