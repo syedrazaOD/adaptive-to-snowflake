@@ -70,6 +70,14 @@ def discover():
     return discover_versions(), discover_sheets()
 
 
+# Folders whose contents should always be excluded
+EXCLUDE_VERSION_FOLDERS = [
+    "Ancient History",
+    "Amanda McKay",
+    "Headcount Sync",
+]
+
+
 def discover_versions():
     current_year = datetime.datetime.now().year
     recent_years = set(str(y) for y in range(current_year - VERSION_LOOKBACK_YEARS, current_year + 2))
@@ -81,24 +89,52 @@ def discover_versions():
         "</call>"
     )
     raw = call_api(xml, timeout=30)
+
+    # Parse folder hierarchy to exclude versions inside excluded folders
     versions = []
-    for m in re.finditer(r'<version\b([^>]+)/?>', raw):
-        attrs = m.group(1)
-        vtype = _ga(attrs, "type")
-        name  = _ga(attrs, "name")
-        if vtype == "VERSION_FOLDER" or not name:
+    excluded_folder_depth = None
+    current_depth = 0
+
+    for m in re.finditer(r'<(/?)version\b([^>]*?)(/?)>', raw):
+        is_close   = m.group(1) == "/"
+        attrs_str  = m.group(2)
+        self_close = m.group(3) == "/"
+
+        if is_close:
+            current_depth -= 1
+            if excluded_folder_depth is not None and current_depth < excluded_folder_depth:
+                excluded_folder_depth = None
             continue
-        if name in EXCLUDE_VERSIONS:
+
+        vtype = _ga(attrs_str, "type")
+        name  = _ga(attrs_str, "name")
+
+        if not self_close:
+            current_depth += 1
+
+        # Check if we just entered an excluded folder
+        if vtype == "VERSION_FOLDER":
+            if name in EXCLUDE_VERSION_FOLDERS:
+                excluded_folder_depth = current_depth
             continue
-        # Always include explicitly listed versions (no year in name)
+
+        # Skip versions inside excluded folders
+        if excluded_folder_depth is not None:
+            continue
+
+        if not name or name in EXCLUDE_VERSIONS:
+            continue
+
+        # Always include explicitly listed versions
         if name in ALWAYS_INCLUDE_VERSIONS:
             versions.append(name)
             continue
+
         # Include versions containing a recent year in their name
         if any(yr in name for yr in recent_years):
             versions.append(name)
             continue
-        # Skip everything else (old archived versions)
+
     log.info(f"Discovered {len(versions)} versions: {versions}")
     return versions
 
@@ -327,9 +363,9 @@ def export_time():
 
 # GL root account codes — covers all standard + cube accounts
 GL_ROOT_CODES = [
-    "Assets", "Liabilities_Equities", "Net_Income", "Income",
-    "Other_Income", "Cost_Of_Goods_Sold", "Expenses",
-    "Other_Expenses", "ExchangeRate",
+    Assets, Liabilities_Equities, Net_Income, Income,
+    Other_Income, Cost_Of_Goods_Sold, Expenses,
+    Other_Expenses, ExchangeRate,
 ]
 
 
