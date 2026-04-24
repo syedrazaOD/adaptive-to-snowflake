@@ -27,6 +27,85 @@ import adaptive_client as ac
 from snowflake_loader import SnowflakeLoader
 
 
+DDL_STATEMENTS = [
+    """CREATE TABLE IF NOT EXISTS fact_planning_data (
+        version_name VARCHAR, sheet_name VARCHAR, account_code VARCHAR,
+        account_name VARCHAR, level_name VARCHAR, period_code VARCHAR,
+        period_name VARCHAR, amount FLOAT, dimensions VARIANT,
+        _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
+    """CREATE TABLE IF NOT EXISTS mod_generic (
+        version_name VARCHAR, sheet_name VARCHAR, raw_data VARIANT,
+        _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
+    """CREATE TABLE IF NOT EXISTS dim_accounts (
+        account_id VARCHAR, account_code VARCHAR, account_name VARCHAR,
+        account_type VARCHAR, parent_id VARCHAR, parent_name VARCHAR,
+        parent_code VARCHAR, _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
+    """CREATE TABLE IF NOT EXISTS dim_sheets (
+        sheet_name VARCHAR, sheet_type VARCHAR,
+        _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
+    """CREATE TABLE IF NOT EXISTS dim_versions (
+        version_id VARCHAR, version_name VARCHAR, version_type VARCHAR,
+        start_plan VARCHAR, end_ver VARCHAR, is_locked VARCHAR, currency VARCHAR,
+        _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
+    """CREATE TABLE IF NOT EXISTS dim_levels (
+        level_id VARCHAR, level_name VARCHAR, short_name VARCHAR,
+        parent_id VARCHAR, parent_name VARCHAR,
+        _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
+    """CREATE TABLE IF NOT EXISTS dim_level_attributes (
+        level_id VARCHAR, level_name VARCHAR, attribute_name VARCHAR,
+        attribute_value VARCHAR, _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
+    """CREATE TABLE IF NOT EXISTS dim_dimensions (
+        dimension_id VARCHAR, dimension_name VARCHAR, value_id VARCHAR,
+        value_name VARCHAR, short_name VARCHAR, is_default VARCHAR,
+        _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
+    """CREATE TABLE IF NOT EXISTS dim_dimension_attributes (
+        dimension_id VARCHAR, dimension_name VARCHAR, value_id VARCHAR,
+        value_name VARCHAR, attribute_name VARCHAR, attribute_value VARCHAR,
+        _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
+    """CREATE TABLE IF NOT EXISTS dim_time (
+        period_id VARCHAR, period_code VARCHAR, period_name VARCHAR,
+        year VARCHAR, quarter VARCHAR, month_num VARCHAR, fiscal_year VARCHAR,
+        _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
+    """CREATE TABLE IF NOT EXISTS _sync_log (
+        run_id VARCHAR DEFAULT UUID_STRING(), started_at TIMESTAMP_NTZ,
+        completed_at TIMESTAMP_NTZ, phase VARCHAR, version_name VARCHAR,
+        sheet_name VARCHAR, rows_written INTEGER, status VARCHAR,
+        error_message VARCHAR, duration_seconds FLOAT)""",
+]
+
+VIEW_STATEMENTS = [
+    "CREATE OR REPLACE VIEW v_income_statement AS SELECT * FROM fact_planning_data WHERE sheet_name = 'Income Statement'",
+    "CREATE OR REPLACE VIEW v_balance_sheet AS SELECT * FROM fact_planning_data WHERE sheet_name = 'Balance Sheet'",
+    "CREATE OR REPLACE VIEW v_final_external_metrics AS SELECT * FROM fact_planning_data WHERE sheet_name = 'Final External Metrics'",
+    "CREATE OR REPLACE VIEW v_volume_summary AS SELECT * FROM fact_planning_data WHERE sheet_name = 'Volume Summary'",
+    "CREATE OR REPLACE VIEW v_modeled_sheet AS SELECT version_name, sheet_name, raw_data, _synced_at FROM mod_generic",
+    "CREATE OR REPLACE VIEW v_sync_status AS SELECT phase, version_name, MAX(completed_at) AS last_synced_at, SUM(rows_written) AS total_rows, COUNT_IF(status = 'ERROR') AS errors FROM _sync_log GROUP BY 1, 2 ORDER BY 1, 2",
+]
+
+
+def setup_schema(loader):
+    """Create all tables and views if they don't exist. Safe to run every time."""
+    log.info("── PHASE -1: SCHEMA SETUP ──────────────────────────────────")
+    cur = loader.conn.cursor()
+    for ddl in DDL_STATEMENTS:
+        table_name = ddl.split("IF NOT EXISTS")[1].split("(")[0].strip()
+        try:
+            cur.execute(ddl)
+            log.info(f"  ✅ {table_name}")
+        except Exception as e:
+            log.error(f"  ❌ {table_name}: {e}")
+    for view in VIEW_STATEMENTS:
+        view_name = view.split("VIEW")[1].split("AS")[0].strip()
+        try:
+            cur.execute(view)
+            log.info(f"  ✅ {view_name}")
+        except Exception as e:
+            log.error(f"  ❌ {view_name}: {e}")
+    loader.conn.commit()
+    cur.close()
+    log.info("Schema setup complete.\n")
+
+
 def run(args):
     start_time = datetime.now(timezone.utc)
     log.info("=" * 60)
@@ -37,6 +116,9 @@ def run(args):
 
     loader = SnowflakeLoader()
     errors = []
+
+    # ── Phase -1: Schema setup (idempotent) ───────────────────
+    setup_schema(loader)
 
     # ── Phase 0: Discovery ────────────────────────────────────
     log.info("\n── PHASE 0: DISCOVERY ──────────────────────────────────────")
