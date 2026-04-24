@@ -78,13 +78,17 @@ class SnowflakeLoader:
         cur.execute(f'INSERT INTO "{SF_SCHEMA}"."{table_name}" ({col_list}) VALUES ({placeholders})',
                     [[row.get(c, "") for c in cols] for row in rows[:1]])  # test
 
+        def clean(v):
+            """Escape % signs to prevent Snowflake connector format string errors."""
+            return str(v).replace("%", "%%") if v is not None else ""
+
         # Batch insert in chunks of 1000
         cur.execute(f'TRUNCATE TABLE "{SF_SCHEMA}"."{table_name}"')
         insert_sql = f'INSERT INTO "{SF_SCHEMA}"."{table_name}" ({col_list}) VALUES ({placeholders})'
         batch_size = 1000
         total = 0
         for i in range(0, len(rows), batch_size):
-            batch = [[row.get(c, "") for c in cols] for row in rows[i:i+batch_size]]
+            batch = [[clean(row.get(c, "")) for c in cols] for row in rows[i:i+batch_size]]
             cur.executemany(insert_sql, batch)
             total += len(batch)
 
@@ -162,8 +166,11 @@ class SnowflakeLoader:
                 if amount == 0:
                     continue
                 batch.append((
-                    version_name, sheet, acc_code, acc_name,
-                    level, period_col, period_col,
+                    version_name, sheet,
+                    str(acc_code).replace("%", "%%"),
+                    str(acc_name).replace("%", "%%"),
+                    str(level).replace("%", "%%"),
+                    period_col, period_col,
                     amount, dims_json
                 ))
                 if len(batch) >= 1000:
