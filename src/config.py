@@ -32,8 +32,6 @@ DATE_END   = os.environ.get("DATE_END",   "12/2028")
 VERSION_LOOKBACK_YEARS = 2
 
 # ── Always include these specific versions ────────────────────
-# Add versions that have no year in their name but should
-# always be synced.
 ALWAYS_INCLUDE_VERSIONS = [
     "Actuals",
     "Plan - Working",
@@ -41,4 +39,26 @@ ALWAYS_INCLUDE_VERSIONS = [
 
 # ── Exclude lists ─────────────────────────────────────────────
 EXCLUDE_VERSIONS = []  # Specific versions to skip
-EXCLUDE_SHEETS   = []  # Sheet names to skip
+
+EXCLUDE_SHEETS = [
+    "Personnel",
+    "Raw_Data",
+    "Cohort Toggle",
+    "UEA_Projections",
+    "GMV",
+    "****HEADCOUNT****",
+    "****OTHER OPEX****",
+    "**** CAPITAL ****",
+    "CAPEX by Line Item",
+    "Title JV P&L",
+    "*** Balance Sheet Models***",
+    "****Volume, Revenue, Margins****",
+    "****Adjacent Services****",
+    "Inventory Actuals",
+    "GMV_LwOD",
+    "OSN Core P&L",
+    "GMV_BwOD",
+    "Home Reserve PNL Summary Data Ingestion",
+    "Leases",
+    "Bonus/Other",
+]
