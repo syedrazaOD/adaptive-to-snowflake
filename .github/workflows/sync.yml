@@ -1,0 +1,38 @@
+name: Adaptive → Snowflake Sync
+
+on:
+  schedule:
+    - cron: "0 */4 * * *"   # Every 4 hours
+  workflow_dispatch:          # Manual trigger from GitHub UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run sync
+        env:
+          ADAPTIVE_LOGIN:    ${{ secrets.ADAPTIVE_LOGIN }}
+          ADAPTIVE_PASSWORD: ${{ secrets.ADAPTIVE_PASSWORD }}
+          SF_ACCOUNT:        ${{ secrets.SF_ACCOUNT }}
+          SF_USER:           ${{ secrets.SF_USER }}
+          SF_PRIVATE_KEY:    ${{ secrets.SF_PRIVATE_KEY }}
+          SF_ROLE:           ${{ secrets.SF_ROLE }}
+          SF_WAREHOUSE:      ${{ secrets.SF_WAREHOUSE }}
+          SF_DATABASE:       ${{ secrets.SF_DATABASE }}
+          SF_SCHEMA:         ${{ secrets.SF_SCHEMA }}
+          DATE_START:        ${{ secrets.DATE_START }}
+          DATE_END:          ${{ secrets.DATE_END }}
+        run: cd src && python main.py
