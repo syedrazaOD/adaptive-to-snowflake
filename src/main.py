@@ -84,7 +84,7 @@ VIEW_STATEMENTS = [
 
 
 def setup_schema(loader):
-    """Create all tables and views if they don't exist. Safe to run every time."""
+    """Create all tables if they don't exist. Safe to run every time."""
     log.info("── PHASE -1: SCHEMA SETUP ──────────────────────────────────")
     cur = loader.conn.cursor()
     for ddl in DDL_STATEMENTS:
@@ -94,13 +94,6 @@ def setup_schema(loader):
             log.info(f"  ✅ {table_name}")
         except Exception as e:
             log.error(f"  ❌ {table_name}: {e}")
-    for view in VIEW_STATEMENTS:
-        view_name = view.split("VIEW")[1].split("AS")[0].strip()
-        try:
-            cur.execute(view)
-            log.info(f"  ✅ {view_name}")
-        except Exception as e:
-            log.error(f"  ❌ {view_name}: {e}")
     loader.conn.commit()
     cur.close()
     log.info("Schema setup complete.\n")
