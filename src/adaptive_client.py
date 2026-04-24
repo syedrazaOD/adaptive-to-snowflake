@@ -327,9 +327,9 @@ def export_time():
 
 # GL root account codes — covers all standard + cube accounts
 GL_ROOT_CODES = [
-    Assets, Liabilities_Equities, Net_Income, Income,
-    Other_Income, Cost_Of_Goods_Sold, Expenses,
-    Other_Expenses, ExchangeRate,
+    "Assets", "Liabilities_Equities", "Net_Income", "Income",
+    "Other_Income", "Cost_Of_Goods_Sold", "Expenses",
+    "Other_Expenses", "ExchangeRate",
 ]
 
 
