@@ -140,7 +140,7 @@ class SnowflakeLoader:
             f'INSERT INTO {SF_SCHEMA}.FACT_PLANNING_DATA '
             "(version_name, sheet_name, account_code, account_name, "
             "level_name, period_code, period_name, amount, dimensions) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, PARSE_JSON(%s))"
+            "SELECT %s, %s, %s, %s, %s, %s, %s, %s, PARSE_JSON(%s)"
         )
 
         batch, total = [], 0
@@ -205,7 +205,7 @@ class SnowflakeLoader:
         insert_sql = (
             f'INSERT INTO {SF_SCHEMA}.MOD_GENERIC '
             "(version_name, sheet_name, raw_data) "
-            "VALUES (%s, %s, PARSE_JSON(%s))"
+            "SELECT %s, %s, PARSE_JSON(%s)"
         )
 
         batch, total = [], 0
@@ -230,6 +230,7 @@ class SnowflakeLoader:
                  rows_written, status, error_message, started_at):
         elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
         cur = self.conn.cursor()
+        safe_error = (error_message or "").replace("%", "%%")
         cur.execute(
             f'INSERT INTO {SF_SCHEMA}._SYNC_LOG '
             "(started_at, completed_at, phase, version_name, sheet_name, "
@@ -237,7 +238,7 @@ class SnowflakeLoader:
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (started_at, datetime.now(timezone.utc), phase,
              version_name or "", sheet_name or "",
-             rows_written, status, error_message or "", elapsed)
+             rows_written, status, safe_error, elapsed)
         )
         self.conn.commit()
         cur.close()
