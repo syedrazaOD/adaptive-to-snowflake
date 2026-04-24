@@ -75,15 +75,12 @@ class SnowflakeLoader:
         placeholders = ", ".join(["%s"] * len(sf_cols))
 
         cur.execute(f'TRUNCATE TABLE IF EXISTS "{SF_SCHEMA}"."{table_name}"')
-        cur.execute(f'INSERT INTO "{SF_SCHEMA}"."{table_name}" ({col_list}) VALUES ({placeholders})',
-                    [[row.get(c, "") for c in cols] for row in rows[:1]])  # test
 
         def clean(v):
             """Escape % signs to prevent Snowflake connector format string errors."""
             return str(v).replace("%", "%%") if v is not None else ""
 
         # Batch insert in chunks of 1000
-        cur.execute(f'TRUNCATE TABLE "{SF_SCHEMA}"."{table_name}"')
         insert_sql = f'INSERT INTO "{SF_SCHEMA}"."{table_name}" ({col_list}) VALUES ({placeholders})'
         batch_size = 1000
         total = 0
