@@ -74,14 +74,14 @@ class SnowflakeLoader:
         col_list   = ", ".join(f'"{c}"' for c in sf_cols)
         placeholders = ", ".join(["%s"] * len(sf_cols))
 
-        cur.execute(f'TRUNCATE TABLE IF EXISTS "{SF_SCHEMA}"."{table_name}"')
+        cur.execute(f'TRUNCATE TABLE IF EXISTS {SF_SCHEMA}.{table_name.upper()}')
 
         def clean(v):
             """Escape % signs to prevent Snowflake connector format string errors."""
             return str(v).replace("%", "%%") if v is not None else ""
 
         # Batch insert in chunks of 1000
-        insert_sql = f'INSERT INTO "{SF_SCHEMA}"."{table_name}" ({col_list}) VALUES ({placeholders})'
+        insert_sql = f'INSERT INTO {SF_SCHEMA}.{table_name.upper()} ({col_list}) VALUES ({placeholders})'
         batch_size = 1000
         total = 0
         for i in range(0, len(rows), batch_size):
@@ -110,7 +110,7 @@ class SnowflakeLoader:
 
         # Delete existing rows for this version
         cur.execute(
-            f'DELETE FROM "{SF_SCHEMA}"."fact_planning_data" WHERE version_name = %s',
+            f'DELETE FROM {SF_SCHEMA}.FACT_PLANNING_DATA WHERE version_name = %s',
             (version_name,)
         )
 
@@ -137,7 +137,7 @@ class SnowflakeLoader:
                                             "Level Name", "Level")]
 
         insert_sql = (
-            f'INSERT INTO "{SF_SCHEMA}"."fact_planning_data" '
+            f'INSERT INTO {SF_SCHEMA}.FACT_PLANNING_DATA '
             "(version_name, sheet_name, account_code, account_name, "
             "level_name, period_code, period_name, amount, dimensions) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, PARSE_JSON(%s))"
@@ -197,13 +197,13 @@ class SnowflakeLoader:
 
         cur = self.conn.cursor()
         cur.execute(
-            f'DELETE FROM "{SF_SCHEMA}"."mod_generic" '
+            f'DELETE FROM {SF_SCHEMA}.MOD_GENERIC '
             "WHERE sheet_name = %s AND version_name = %s",
             (sheet_name, version_name)
         )
 
         insert_sql = (
-            f'INSERT INTO "{SF_SCHEMA}"."mod_generic" '
+            f'INSERT INTO {SF_SCHEMA}.MOD_GENERIC '
             "(version_name, sheet_name, raw_data) "
             "VALUES (%s, %s, PARSE_JSON(%s))"
         )
@@ -231,7 +231,7 @@ class SnowflakeLoader:
         elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
         cur = self.conn.cursor()
         cur.execute(
-            f'INSERT INTO "{SF_SCHEMA}"."_sync_log" '
+            f'INSERT INTO {SF_SCHEMA}._SYNC_LOG '
             "(started_at, completed_at, phase, version_name, sheet_name, "
             "rows_written, status, error_message, duration_seconds) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
