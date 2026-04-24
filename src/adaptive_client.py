@@ -5,6 +5,7 @@ Handles discovery, metadata export, and data export.
 """
 
 import csv
+import datetime
 import io
 import json
 import logging
@@ -23,7 +24,7 @@ log = logging.getLogger(__name__)
 HEADERS = {"Content-Type": "text/xml; charset=UTF-8"}
 
 
-# ── Helpers ───────────────────────────────────────────────────
+# -- Helpers ----------------------------------------------------------
 
 def xe(s):
     return (str(s).replace("&", "&amp;").replace('"', "&quot;")
@@ -63,18 +64,16 @@ def _creds():
     return f'<credentials login="{xe(ADAPTIVE_LOGIN)}" password="{xe(ADAPTIVE_PASSWORD)}"/>'
 
 
-# ── Phase 0: Discovery ────────────────────────────────────────
+# -- Phase 0: Discovery -----------------------------------------------
 
 def discover():
-    """
-    Returns:
-      versions: list of version name strings (active, not excluded)
-      sheets:   dict of {sheet_name: sheet_type}  (not excluded)
-    """
     return discover_versions(), discover_sheets()
 
 
 def discover_versions():
+    current_year = datetime.datetime.now().year
+    recent_years = set(str(y) for y in range(current_year - VERSION_LOOKBACK_YEARS, current_year + 2))
+
     xml = (
         "<?xml version='1.0' encoding='UTF-8'?>"
         "<call method=\"exportVersions\" callerName=\"adaptive_export\">"
@@ -89,12 +88,17 @@ def discover_versions():
         name  = _ga(attrs, "name")
         if vtype == "VERSION_FOLDER" or not name:
             continue
-        if INCLUDE_VERSIONS is not None and name not in INCLUDE_VERSIONS:
-            continue
         if name in EXCLUDE_VERSIONS:
-            log.info(f"  Skipping excluded version: {name}")
             continue
-        versions.append(name)
+        # Always include explicitly listed versions (no year in name)
+        if name in ALWAYS_INCLUDE_VERSIONS:
+            versions.append(name)
+            continue
+        # Include versions containing a recent year in their name
+        if any(yr in name for yr in recent_years):
+            versions.append(name)
+            continue
+        # Skip everything else (old archived versions)
     log.info(f"Discovered {len(versions)} versions: {versions}")
     return versions
 
@@ -121,10 +125,9 @@ def discover_sheets():
     return sheets
 
 
-# ── Phase 1: Metadata ─────────────────────────────────────────
+# -- Phase 1: Metadata ------------------------------------------------
 
 def export_accounts():
-    """Returns (gl_rows, metric_rows, custom_rows, assumption_rows, attr_rows)"""
     xml = (
         "<?xml version='1.0' encoding='UTF-8'?>"
         "<call method=\"exportAccounts\" callerName=\"adaptive_export\">"
@@ -163,7 +166,6 @@ def export_accounts():
         if not self_close:
             stack.append((acc_id, acc_name, acc_code))
 
-    # Account attributes
     for lm in re.finditer(r'<account\b([^>]*?)/?>', raw):
         id_m = re.search(r'\bid="(\d+)"', lm.group(1))
         if not id_m: continue
@@ -321,17 +323,11 @@ def export_time():
     return rows
 
 
-# ── Phase 2: Standard + Cube data ────────────────────────────
+# -- Phase 2: Standard + Cube data ------------------------------------
 
 def export_all_data(version_name):
-    """
-    Calls exportData with NO account filter — returns ALL standard+cube
-    accounts in one call. One call per version covers all 61+ sheets.
-    Returns (rows, error).
-    """
-    log.info(f"  exportData: version={version_name} date={DATE_START}→{DATE_END}")
+    log.info(f"  exportData: version={version_name} date={DATE_START} to {DATE_END}")
 
-    # Split into yearly chunks to avoid timeouts
     sm, sy = _date_parts(DATE_START)
     em, ey = _date_parts(DATE_END)
     chunks = [(_date_str(sm if yr == sy else 1, yr),
@@ -368,13 +364,9 @@ def export_all_data(version_name):
     return all_rows, None
 
 
-# ── Phase 3: Modeled sheet data ───────────────────────────────
+# -- Phase 3: Modeled sheet data --------------------------------------
 
 def export_modeled_sheet(sheet_name, version_name):
-    """
-    Exports a modeled sheet. Tries non-global then global.
-    Returns (rows, error).
-    """
     def try_export(is_global):
         xml = (
             "<?xml version='1.0' encoding='UTF-8'?>"
@@ -398,7 +390,7 @@ def export_modeled_sheet(sheet_name, version_name):
     return rows, error
 
 
-# ── Date helpers ──────────────────────────────────────────────
+# -- Date helpers -----------------------------------------------------
 
 def _date_parts(s):
     parts = s.strip().split("/")
