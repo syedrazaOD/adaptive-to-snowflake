@@ -325,6 +325,14 @@ def export_time():
 
 # -- Phase 2: Standard + Cube data ------------------------------------
 
+# GL root account codes — covers all standard + cube accounts
+GL_ROOT_CODES = [
+    Assets, Liabilities_Equities, Net_Income, Income,
+    Other_Income, Cost_Of_Goods_Sold, Expenses,
+    Other_Expenses, ExchangeRate,
+]
+
+
 def export_all_data(version_name):
     log.info(f"  exportData: version={version_name} date={DATE_START} to {DATE_END}")
 
@@ -333,6 +341,12 @@ def export_all_data(version_name):
     chunks = [(_date_str(sm if yr == sy else 1, yr),
                _date_str(em if yr == ey else 12, yr))
               for yr in range(sy, ey + 1)]
+
+    # Build account filter XML using root GL codes
+    acct_xml = "".join(
+        f'<account code="{xe(c)}" isAssumption="false" includeDescendants="true"/>' 
+        for c in GL_ROOT_CODES
+    )
 
     all_rows = []
     seen = set()
@@ -345,6 +359,7 @@ def export_all_data(version_name):
             f"<version name=\"{xe(version_name)}\"/>"
             "<format useInternalCodes=\"true\" includeUnmappedItems=\"true\"/>"
             "<filters>"
+            f"<accounts>{acct_xml}</accounts>"
             f"<timeSpan start=\"{xe(ds)}\" end=\"{xe(de)}\"/>"
             "</filters>"
             "<rules includeZeroRows=\"false\" timeRollups=\"false\"/>"
