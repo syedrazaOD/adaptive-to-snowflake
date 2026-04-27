@@ -31,10 +31,10 @@ DDL_STATEMENTS = [
     """CREATE TABLE IF NOT EXISTS fact_planning_data (
         version_name VARCHAR, sheet_name VARCHAR, account_code VARCHAR,
         account_name VARCHAR, level_name VARCHAR, period_code VARCHAR,
-        period_name VARCHAR, amount FLOAT, dimensions VARIANT,
+        period_name VARCHAR, amount FLOAT, dimensions VARCHAR,
         _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
     """CREATE TABLE IF NOT EXISTS mod_generic (
-        version_name VARCHAR, sheet_name VARCHAR, raw_data VARIANT,
+        version_name VARCHAR, sheet_name VARCHAR, raw_data VARCHAR(16777216),
         _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
     """CREATE TABLE IF NOT EXISTS dim_accounts (
         account_id VARCHAR, account_code VARCHAR, account_name VARCHAR,
