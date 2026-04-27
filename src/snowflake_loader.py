@@ -203,20 +203,13 @@ class SnowflakeLoader:
         insert_sql = (
             f'INSERT INTO {SF_SCHEMA}.MOD_GENERIC '
             "(version_name, sheet_name, raw_data) "
-            "VALUES (%s, %s, %s)"
+            "SELECT %s, %s, PARSE_JSON(%s)"
         )
 
-        # Store raw_data as VARCHAR string — query with PARSE_JSON(raw_data) at runtime
-        batch, total = [], 0
+        total = 0
         for row in rows:
-            batch.append((version_name, sheet_name, json.dumps(row)))
-            if len(batch) >= 5000:
-                cur.executemany(insert_sql, batch)
-                total += len(batch)
-                batch = []
-        if batch:
-            cur.executemany(insert_sql, batch)
-            total += len(batch)
+            cur.execute(insert_sql, (version_name, sheet_name, json.dumps(row)))
+            total += 1
 
         self.conn.commit()
         cur.close()
