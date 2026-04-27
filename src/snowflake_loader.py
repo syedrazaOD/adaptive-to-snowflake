@@ -143,7 +143,7 @@ class SnowflakeLoader:
             "SELECT %s, %s, %s, %s, %s, %s, %s, %s, PARSE_JSON(%s)"
         )
 
-        batch, total = [], 0
+        total = 0
         for row in raw_rows:
             acc_code  = row.get("Account Code", row.get("account code", ""))
             acc_name  = row.get("Account Name", row.get("account name", ""))
@@ -162,22 +162,12 @@ class SnowflakeLoader:
                     continue
                 if amount == 0:
                     continue
-                batch.append((
+                cur.execute(insert_sql, (
                     version_name, sheet,
-                    str(acc_code).replace("%", "%%"),
-                    str(acc_name).replace("%", "%%"),
-                    str(level).replace("%", "%%"),
-                    period_col, period_col,
-                    amount, dims_json
+                    str(acc_code), str(acc_name), str(level),
+                    period_col, period_col, amount, dims_json
                 ))
-                if len(batch) >= 1000:
-                    cur.executemany(insert_sql, batch)
-                    total += len(batch)
-                    batch = []
-
-        if batch:
-            cur.executemany(insert_sql, batch)
-            total += len(batch)
+                total += 1
 
         self.conn.commit()
         cur.close()
@@ -208,16 +198,10 @@ class SnowflakeLoader:
             "SELECT %s, %s, PARSE_JSON(%s)"
         )
 
-        batch, total = [], 0
+        total = 0
         for row in rows:
-            batch.append((version_name, sheet_name, json.dumps(row)))
-            if len(batch) >= 1000:
-                cur.executemany(insert_sql, batch)
-                total += len(batch)
-                batch = []
-        if batch:
-            cur.executemany(insert_sql, batch)
-            total += len(batch)
+            cur.execute(insert_sql, (version_name, sheet_name, json.dumps(row)))
+            total += 1
 
         self.conn.commit()
         cur.close()
