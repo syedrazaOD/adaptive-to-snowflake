@@ -28,12 +28,12 @@ import adaptive_client as ac
 from snowflake_loader import SnowflakeLoader, SF_DATABASE, SF_SCHEMA
 
 DDL_STATEMENTS = [
-    """CREATE TABLE IF NOT EXISTS fact_planning_data (
+    """CREATE OR REPLACE TABLE fact_planning_data (
         version_name VARCHAR, sheet_name VARCHAR, account_code VARCHAR,
         account_name VARCHAR, level_name VARCHAR, period_code VARCHAR,
         period_name VARCHAR, amount FLOAT, dimensions VARCHAR,
         _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
-    """CREATE TABLE IF NOT EXISTS mod_generic (
+    """CREATE OR REPLACE TABLE mod_generic (
         version_name VARCHAR, sheet_name VARCHAR, raw_data VARCHAR(16777216),
         _synced_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP())""",
     """CREATE TABLE IF NOT EXISTS dim_accounts (
