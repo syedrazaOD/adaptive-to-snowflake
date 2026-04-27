@@ -38,7 +38,11 @@ ALWAYS_INCLUDE_VERSIONS = [
 ]
 
 # ── Exclude lists ─────────────────────────────────────────────
-EXCLUDE_VERSIONS = []  # Specific versions to skip
+EXCLUDE_VERSIONS = [
+    "2025 AOP - 1.31.25",
+    "2025 AOP",
+    "2025 April Forecast"
+]  # Specific versions to skip
 
 EXCLUDE_SHEETS = [
     "Contractor - Personnel",
