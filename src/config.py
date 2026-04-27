@@ -33,15 +33,22 @@ VERSION_LOOKBACK_YEARS = 2
 
 # ── Always include these specific versions ────────────────────
 ALWAYS_INCLUDE_VERSIONS = [
-    "Actuals",
     "Plan - Working",
 ]
 
 # ── Exclude lists ─────────────────────────────────────────────
 EXCLUDE_VERSIONS = [
+    "Actuals",
     "2025 AOP - 1.31.25",
     "2025 AOP",
-    "2025 April Forecast"
+    "2025 April Forecast",
+    "2025 AOP - 1.31.25",
+    "2025 AOP",
+    "2025 April Forecast",
+    "Actuals",
+    "2025 July Forecast",
+    "Q4 2025 Forecast",
+    "Q2 2026 Forecast",
 ]  # Specific versions to skip
 
 EXCLUDE_SHEETS = [
