@@ -84,9 +84,18 @@ VIEW_STATEMENTS = [
 
 
 def setup_schema(loader):
-    """Create all tables if they don't exist. Safe to run every time."""
+    """Create all tables if they don't exist. Migrates VARIANT columns to VARCHAR."""
     log.info("── PHASE -1: SCHEMA SETUP ──────────────────────────────────")
     cur = loader.conn.cursor()
+    # One-time migration: convert VARIANT columns to VARCHAR
+    for tbl, col in [("MOD_GENERIC", "RAW_DATA"), ("FACT_PLANNING_DATA", "DIMENSIONS")]:
+        try:
+            cur.execute(
+                f"ALTER TABLE {SF_SCHEMA}.{tbl} MODIFY COLUMN {col} VARCHAR(16777216)"
+            )
+            log.info(f"  Migrated {tbl}.{col} → VARCHAR")
+        except Exception:
+            pass  # Table doesn't exist yet or already correct — fine
     for ddl in DDL_STATEMENTS:
         table_name = ddl.split("IF NOT EXISTS")[1].split("(")[0].strip()
         try:
