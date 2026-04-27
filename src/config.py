@@ -41,6 +41,7 @@ ALWAYS_INCLUDE_VERSIONS = [
 EXCLUDE_VERSIONS = []  # Specific versions to skip
 
 EXCLUDE_SHEETS = [
+    "Contractor - Personnel",
     "Personnel",
     "Raw_Data",
     "Cohort Toggle",
