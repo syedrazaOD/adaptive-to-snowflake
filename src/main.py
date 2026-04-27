@@ -24,7 +24,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 import adaptive_client as ac
-from snowflake_loader import SnowflakeLoader
+from snowflake_loader import SnowflakeLoader, SF_SCHEMA
 
 
 DDL_STATEMENTS = [
