@@ -136,21 +136,22 @@ class SnowflakeLoader:
                       and k.strip() not in ("", "Account Code", "Account Name",
                                             "Level Name", "Level")]
 
+        # Store dimensions as VARCHAR string — query with PARSE_JSON(dimensions) at runtime
         insert_sql = (
             f'INSERT INTO {SF_SCHEMA}.FACT_PLANNING_DATA '
             "(version_name, sheet_name, account_code, account_name, "
             "level_name, period_code, period_name, amount, dimensions) "
-            "SELECT %s, %s, %s, %s, %s, %s, %s, %s, PARSE_JSON(%s)"
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
         )
 
-        total = 0
+        batch, total = [], 0
         for row in raw_rows:
             acc_code  = row.get("Account Code", row.get("account code", ""))
             acc_name  = row.get("Account Name", row.get("account name", ""))
             level     = row.get("Level Name", row.get("Level", ""))
             sheet     = sheet_lookup.get(acc_code, "")
             dims      = {k: row.get(k, "") for k in dim_cols if row.get(k, "")}
-            dims_json = json.dumps(dims) if dims else "null"
+            dims_str  = json.dumps(dims) if dims else None
 
             for period_col in period_cols:
                 val_str = row.get(period_col, "").strip()
@@ -162,12 +163,19 @@ class SnowflakeLoader:
                     continue
                 if amount == 0:
                     continue
-                cur.execute(insert_sql, (
+                batch.append((
                     version_name, sheet,
                     str(acc_code), str(acc_name), str(level),
-                    period_col, period_col, amount, dims_json
+                    period_col, period_col, amount, dims_str
                 ))
-                total += 1
+                if len(batch) >= 5000:
+                    cur.executemany(insert_sql, batch)
+                    total += len(batch)
+                    batch = []
+
+        if batch:
+            cur.executemany(insert_sql, batch)
+            total += len(batch)
 
         self.conn.commit()
         cur.close()
@@ -195,13 +203,20 @@ class SnowflakeLoader:
         insert_sql = (
             f'INSERT INTO {SF_SCHEMA}.MOD_GENERIC '
             "(version_name, sheet_name, raw_data) "
-            "SELECT %s, %s, PARSE_JSON(%s)"
+            "VALUES (%s, %s, %s)"
         )
 
-        total = 0
+        # Store raw_data as VARCHAR string — query with PARSE_JSON(raw_data) at runtime
+        batch, total = [], 0
         for row in rows:
-            cur.execute(insert_sql, (version_name, sheet_name, json.dumps(row)))
-            total += 1
+            batch.append((version_name, sheet_name, json.dumps(row)))
+            if len(batch) >= 5000:
+                cur.executemany(insert_sql, batch)
+                total += len(batch)
+                batch = []
+        if batch:
+            cur.executemany(insert_sql, batch)
+            total += len(batch)
 
         self.conn.commit()
         cur.close()
