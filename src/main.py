@@ -97,7 +97,10 @@ def setup_schema(loader):
         except Exception as e: 
             log.warning(f"  Could not migrate {tbl}.{col}: {e}")  # Table doesn't exist yet or already correct — fine
     for ddl in DDL_STATEMENTS:
-        table_name = ddl.split("IF NOT EXISTS")[1].split("(")[0].strip()
+        if "IF NOT EXISTS" in ddl:
+    table_name = ddl.split("IF NOT EXISTS")[1].split("(")[0].strip()
+else:
+    table_name = ddl.split("TABLE")[2].split("(")[0].strip()
         try:
             cur.execute(ddl)
             log.info(f"  ✅ {table_name}")
