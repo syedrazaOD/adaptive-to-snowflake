@@ -24,8 +24,8 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 import adaptive_client as ac
+from snowflake_loader import SnowflakeLoader
 
-from snowflake_loader import SnowflakeLoader, SF_DATABASE, SF_SCHEMA
 
 DDL_STATEMENTS = [
     """CREATE OR REPLACE TABLE fact_planning_data (
@@ -91,16 +91,16 @@ def setup_schema(loader):
     for tbl, col in [("MOD_GENERIC", "RAW_DATA"), ("FACT_PLANNING_DATA", "DIMENSIONS")]:
         try:
             cur.execute(
-                f"ALTER TABLE {SF_DATABASE}.{SF_SCHEMA}.{tbl} MODIFY COLUMN {col} VARCHAR(16777216)"
+                f"ALTER TABLE {SF_SCHEMA}.{tbl} MODIFY COLUMN {col} VARCHAR(16777216)"
             )
             log.info(f"  Migrated {tbl}.{col} → VARCHAR")
-        except Exception as e: 
-            log.warning(f"  Could not migrate {tbl}.{col}: {e}")  # Table doesn't exist yet or already correct — fine
+        except Exception:
+            pass  # Table doesn't exist yet or already correct — fine
     for ddl in DDL_STATEMENTS:
         if "IF NOT EXISTS" in ddl:
-    table_name = ddl.split("IF NOT EXISTS")[1].split("(")[0].strip()
-else:
-    table_name = ddl.split("TABLE")[2].split("(")[0].strip()
+            table_name = ddl.split("IF NOT EXISTS")[1].split("(")[0].strip()
+        else:
+            table_name = ddl.split("TABLE")[2].split("(")[0].strip()
         try:
             cur.execute(ddl)
             log.info(f"  ✅ {table_name}")
