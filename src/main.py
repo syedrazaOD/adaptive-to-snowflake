@@ -100,7 +100,7 @@ def setup_schema(loader):
         if "IF NOT EXISTS" in ddl:
             table_name = ddl.split("IF NOT EXISTS")[1].split("(")[0].strip()
         else:
-            table_name = ddl.split("TABLE")[1].split("(")[0].strip()
+            table_name = ddl.split("TABLE")[2].split("(")[0].strip()
         try:
             cur.execute(ddl)
             log.info(f"  ✅ {table_name}")
@@ -258,15 +258,15 @@ def run(args):
     log.info("\n" + "=" * 60)
     log.info(f"Sync completed in {elapsed:.1f}s")
     real_errors = [e for e in errors if "Invalid 'modeled-sheet name'" not in e]
-if real_errors:
-    log.warning(f"⚠️  {len(real_errors)} errors:")
-    for err in real_errors:
-        log.warning(f"  - {err}")
-    sys.exit(1)
-elif errors:
-    log.warning(f"⚠️  {len(errors)} warnings (non-fatal):")
-    for err in errors:
-        log.warning(f"  - {err}")
+    if real_errors:
+        log.warning(f"⚠️  {len(real_errors)} errors:")
+        for err in real_errors:
+            log.warning(f"  - {err}")
+        sys.exit(1)
+    elif errors:
+        log.warning(f"⚠️  {len(errors)} warnings (non-fatal):")
+        for err in errors:
+            log.warning(f"  - {err}")
     else:
         log.info("✅ All phases completed successfully.")
 
