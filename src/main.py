@@ -100,7 +100,7 @@ def setup_schema(loader):
         if "IF NOT EXISTS" in ddl:
             table_name = ddl.split("IF NOT EXISTS")[1].split("(")[0].strip()
         else:
-            table_name = ddl.split("TABLE")[2].split("(")[0].strip()
+            table_name = ddl.split("TABLE")[1].split("(")[0].strip()
         try:
             cur.execute(ddl)
             log.info(f"  ✅ {table_name}")
