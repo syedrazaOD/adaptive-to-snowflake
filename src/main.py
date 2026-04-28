@@ -257,11 +257,16 @@ def run(args):
     elapsed = (datetime.now(timezone.utc) - start_time).total_seconds()
     log.info("\n" + "=" * 60)
     log.info(f"Sync completed in {elapsed:.1f}s")
-    if errors:
-        log.warning(f"⚠️  {len(errors)} errors:")
-        for err in errors:
-            log.warning(f"  - {err}")
-        sys.exit(1)
+    real_errors = [e for e in errors if "Invalid 'modeled-sheet name'" not in e]
+if real_errors:
+    log.warning(f"⚠️  {len(real_errors)} errors:")
+    for err in real_errors:
+        log.warning(f"  - {err}")
+    sys.exit(1)
+elif errors:
+    log.warning(f"⚠️  {len(errors)} warnings (non-fatal):")
+    for err in errors:
+        log.warning(f"  - {err}")
     else:
         log.info("✅ All phases completed successfully.")
 
